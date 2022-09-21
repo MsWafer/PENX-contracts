@@ -14,10 +14,10 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   const scheduler = await deployments.get('Scheduler')
   const constructor = [
     pxlt.address,
-    "",
+    "setToken_address",
     scheduler.address
   ]
-  let stake = await deploy('Scheduler', {
+  let stake = await deploy('Staking', {
     from: deployer,
     args: constructor,
     log: true
@@ -28,5 +28,5 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
     constructorArguments: constructor
   })
 };
-module.exports.tags = ['FakeUSDT']
+module.exports.tags = ['Staking']
 
