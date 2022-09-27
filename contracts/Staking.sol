@@ -3,26 +3,30 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./IScheduler.sol";
+import "./interfaces/IScheduler.sol";
 import "./mixins/cryptography.sol";
+import "./interfaces/ISwap.sol";
 
 contract Staking is SignatureControl {
-    IERC20 PXLT;
     IERC20 PENX;
+    IERC20 PXLT;
+    IERC20 USDC;
+    ISwap router;
     IScheduler scheduler;
     bool isPaused = true;
 
     mapping(address => mapping(uint256 => bool)) usedNonces;
 
-    mapping(address => uint256) public stakedPENX;
+    mapping(address => uint256) public stakedSet;
     uint256 public withdrawFee = 500;
 
     uint256 accumulatedSetFee;
 
     event Withdraw(
         address account,
-        uint256 pxlt,
         uint256 PENX,
+        uint256 PXLT,
+        uint256 swappedFor,
         bool hasFee
     );
 
@@ -38,15 +42,15 @@ contract Staking is SignatureControl {
 
     modifier isValidWithdraw(
         bytes memory signature,
-        uint256 PXLTAmount,
         uint256 PENXAmount,
+        uint256 PXLTAmount,
         uint256 nonce,
         uint256 timestamp
     ) {
         address signer = getSigner(
             signature,
-            PXLTAmount,
             PENXAmount,
+            PXLTAmount,
             nonce,
             timestamp
         );
@@ -57,13 +61,17 @@ contract Staking is SignatureControl {
     }
 
     constructor(
-        IERC20 _PXLT,
         IERC20 _PENX,
-        IScheduler _scheduler
+        IERC20 _PXLT,
+        IERC20 _USDC,
+        IScheduler _scheduler,
+        ISwap _router
     ) {
-        PXLT = _PXLT;
         PENX = _PENX;
+        PXLT = _PXLT;
+        USDC = _USDC;
         scheduler = _scheduler;
+        router = _router;
     }
 
     function addSchedules(address[] memory workers, uint256[] memory amounts)
@@ -73,24 +81,24 @@ contract Staking is SignatureControl {
         require(workers.length == amounts.length, "Incorrect arrays provided");
         uint256 totalAmount;
         for (uint256 i = 0; i < workers.length; ) {
-            stakedPENX[workers[i]] += amounts[i];
+            stakedSet[workers[i]] += amounts[i];
             totalAmount += amounts[i];
             unchecked {
                 i++;
             }
         }
-        PENX.transferFrom(msg.sender, address(this), totalAmount);
+        PXLT.transferFrom(msg.sender, address(this), totalAmount);
     }
 
     function withdrawPension(
         bytes memory signature,
-        uint256 PXLTAmount,
         uint256 PENXAmount,
+        uint256 PXLTAmount,
         uint256 nonce,
         uint256 timestamp
     )
         public
-        isValidWithdraw(signature, PXLTAmount, PENXAmount, nonce, timestamp)
+        isValidWithdraw(signature, PENXAmount, PXLTAmount, nonce, timestamp)
     {
         usedNonces[msg.sender][nonce] = true;
         bool hasFee;
@@ -98,21 +106,29 @@ contract Staking is SignatureControl {
             hasFee = true;
         }
         if (hasFee) {
-            uint256 penXFee = (PXLTAmount / 10000) * withdrawFee;
-            uint256 setFee = (PENXAmount / 10000) * withdrawFee;
-            PENXAmount -= setFee;
-            PXLTAmount -= penXFee;
+            uint256 setFee = (PXLTAmount / 10000) * withdrawFee;
+            uint256 penxFee = (PENXAmount / 10000) * withdrawFee;
+            stakedSet[msg.sender] -= setFee;
+            PENXAmount -= penxFee;
             accumulatedSetFee += setFee;
         }
+        address[] memory path = new address[](2);
+        path[0] = address(PXLT);
+        path[1] = address(USDC);
+        uint256[] memory amounts = router.swapExactTokensForTokens(
+            stakedSet[msg.sender],
+            1,
+            path,
+            msg.sender,
+            block.timestamp
+        );
+        PENX.transfer(address(this), PENXAmount);
 
-        PENX.transfer(address(this), stakedPENX[msg.sender]);
-        PXLT.transfer(address(this), PXLTAmount);
-
-        emit Withdraw(msg.sender, PXLTAmount, PENXAmount, hasFee);
+        emit Withdraw(msg.sender, PENXAmount, PXLTAmount, amounts[1], hasFee);
     }
 
     function withdrawAccumulatedFee() public {
         require(scheduler.isAdmin(msg.sender), "Restricted method");
-        PENX.transferFrom(address(this), msg.sender, accumulatedSetFee);
+        PXLT.transferFrom(address(this), msg.sender, accumulatedSetFee);
     }
 }

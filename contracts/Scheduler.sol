@@ -4,17 +4,28 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./mixins/RoleControl.sol";
+import "./interfaces/ISwap.sol";
+import "./interfaces/IFactory.sol";
 
 contract Scheduler is RoleControl {
     IERC20 USDC;
+    ISwap router;
+    IERC20 set;
+
     bool public isPaused = false;
 
     uint256 public amountThisIteration;
+    string[] public schedulesThisIteration;
 
     mapping(address => uint256) workerRetirementDate;
     mapping(address => bool) isExistingWorker;
 
     event ScheduleCreated(string ipfs, address contriburor);
+    event IterationEnded(
+        string[] schedules,
+        uint256 totalContributed,
+        uint256 swappedFor
+    );
 
     modifier isNotPaused() {
         require(!isPaused);
@@ -31,13 +42,21 @@ contract Scheduler is RoleControl {
 
     constructor(
         IERC20 _USDC,
+        IERC20 _set,
         address _admin,
-        address _operator
+        address _operator,
+        ISwap _router
     ) {
         USDC = _USDC;
+        set = _set;
+        router = _router;
+        IFactory factory = IFactory(router.factory());
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(DEFAULT_ADMIN_ROLE, _admin);
         _setupRole(OPERATOR_ROLE, _operator);
+        if (factory.getPair(address(set), address(USDC)) != address(0)) {
+            factory.createPair(address(set), address(USDC));
+        }
     }
 
     function createSchedule(
@@ -58,14 +77,29 @@ contract Scheduler is RoleControl {
             }
         }
         amountThisIteration += totalAmount;
-
+        schedulesThisIteration.push(ipfs);
         USDC.transferFrom(msg.sender, address(this), totalAmount);
         emit ScheduleCreated(ipfs, msg.sender);
     }
 
     function withdrawUSDC() public onlyOperator {
-        USDC.transferFrom(address(this), msg.sender, amountThisIteration);
+        address[] memory path = new address[](2);
+        path[0] = address(USDC);
+        path[0] = address(set);
+        uint256[] memory amounts = router.swapExactTokensForTokens(
+            amountThisIteration,
+            1,
+            path,
+            msg.sender,
+            block.timestamp
+        );
+        emit IterationEnded(
+            schedulesThisIteration,
+            amountThisIteration,
+            amounts[1]
+        );
         delete amountThisIteration;
+        delete schedulesThisIteration;
     }
 
     function getWorkerRetirementDate(address worker)
