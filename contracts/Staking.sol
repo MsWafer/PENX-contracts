@@ -158,7 +158,7 @@ contract Staking is SignatureControl {
         uint256 daysPassedSinceDeposit = (secondsPassed - leftoverSeconds) /
             secondsInDay;
         uint256 PENXtoAdd = (((info.stakedSet * sqrt(daysPassedSinceDeposit)) /
-            totalSupply) * coefficient) / 10000;
+            totalSupply/1e18) * coefficient) / 10000;
         info.accruedPENX += PENXtoAdd;
     }
 
