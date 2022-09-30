@@ -80,7 +80,7 @@ contract Staking {
             if (addWorker(workers[i], amounts[i])) {
                 workerArray.push(workers[i]);
             }
-            totalAmount+=amounts[i];
+            totalAmount += amounts[i];
             unchecked {
                 i++;
             }
@@ -165,7 +165,7 @@ contract Staking {
         );
         delete workerAddressToInfo[msg.sender];
     }
-    
+
     function withdrawAccumulatedFee() public {
         require(scheduler.isAdmin(msg.sender), "Restricted method");
         PXLT.transferFrom(address(this), msg.sender, accumulatedSetFee);
