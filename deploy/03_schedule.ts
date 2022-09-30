@@ -15,7 +15,7 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
     usdc.address,
     pxlt.address,
     "0x62F650c0eE84E3a1998A2EEe042a12D9E9728843",
-    "0x62F650c0eE84E3a1998A2EEe042a12D9E9728843",
+    "0x01eA1F33d10da0F1a01bcFA6728deB0C60dCbb9a",
     "0xd99d1c33f9fc3444f8101754abc46c52416550d1",
   ];
   let stake = await deploy("Scheduler", {

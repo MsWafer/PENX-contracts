@@ -15,7 +15,7 @@ contract Staking {
     bool isPaused = true;
 
     // uint256 secondsInDay = 86400;
-    uint256 secondsInDay = 60;
+    uint256 secondsInDay = 3600;
 
     uint256 public withdrawFee = 500;
 
