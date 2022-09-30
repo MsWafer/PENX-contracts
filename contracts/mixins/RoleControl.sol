@@ -9,7 +9,7 @@ contract RoleControl is AccessControl {
     bytes32 OPERATOR_ROLE = bytes32("OPERATOR_ROLE");
 
     modifier onlyAdmin() {
-        require(isAdmin(msg.sender));
+        require(isAdmin(msg.sender),"ADMIN RESTRICTED FUNCTION");
         _;
     }
 
@@ -22,7 +22,7 @@ contract RoleControl is AccessControl {
     }
 
     modifier onlyOperator() {
-        require(isOperator(msg.sender));
+        require(isOperator(msg.sender),"ADMIN RESTRICTED FUNCTION");
         _;
     }
 

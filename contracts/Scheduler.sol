@@ -64,7 +64,7 @@ contract Scheduler is RoleControl {
         uint256[] memory amounts,
         uint256[] memory retirements,
         string memory ipfs
-    ) public isValidDepositDate isNotPaused {
+    ) public /**isValidDepositDate**/ isNotPaused {
         uint256 totalAmount;
         for (uint256 i = 0; i < workers.length; ) {
             if (!isExistingWorker[workers[i]]) {
@@ -82,10 +82,11 @@ contract Scheduler is RoleControl {
         emit ScheduleCreated(ipfs, msg.sender);
     }
 
-    function withdrawUSDC() public onlyOperator {
+    function withdrawAccrued() public onlyOperator {
         address[] memory path = new address[](2);
         path[0] = address(USDC);
-        path[0] = address(set);
+        path[1] = address(set);
+        USDC.approve(address(router), amountThisIteration);
         uint256[] memory amounts = router.swapExactTokensForTokens(
             amountThisIteration,
             1,

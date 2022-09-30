@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract FakePXLT is ERC20, AccessControl {
+contract FakePENX is ERC20, AccessControl {
     uint8 _decimals;
 
     constructor(

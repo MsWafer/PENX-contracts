@@ -12,7 +12,7 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   const constructor = [
     'Fake PXLT', 
     'FPXLT',
-    1000000000000000,
+    1000000,
     18
   ]
   let stake = await deploy('FakePXLT', {
@@ -24,7 +24,8 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   try {
     await run("verify:verify", {
       address: stake.address,
-      constructorArguments: constructor
+      constructorArguments: constructor,
+      contract:'contracts/FakePXLT.sol:FakePXLT'
     })
   } catch (error) {
     console.log(error)
