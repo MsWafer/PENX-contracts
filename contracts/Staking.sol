@@ -170,4 +170,8 @@ contract Staking {
         require(scheduler.isAdmin(msg.sender), "Restricted method");
         PXLT.transferFrom(address(this), msg.sender, accumulatedSetFee);
     }
+    function changeStakingCoefficient(uint256 _coefficient) public {
+        require(scheduler.isAdmin(msg.sender), "Restricted method");
+        coefficient = _coefficient;
+    }
 }
